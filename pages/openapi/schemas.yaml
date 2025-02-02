@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: Common Schema
+  description: 공통 스키마를 정의하는 문서입니다.
+  version: 0.0.1
+  contact:
+    name: Team Ourfit
+    email: teamourfit@gmail.com
+servers:
+  - url: https://dev.not-available-yet.com
+    description: Development
+  - url: https://not-available-yet.com
+    description: Production
+components:
+  schemas:
+    BaseResponse:
+      description: "표준 응답"
+      type: object
+      properties:
+        message:
+          type: string
+          example: "OK"
+          description: "HTTP 상태 메세지"
+        data:
+          type: object
+          description: "응답 데이터"
+    ErrorResponse:
+      description: "표준 오류 응답"
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Http Status Message"
+          description: "HTTP 상태 메세지"
+        data:
+          $ref: "#/components/schemas/ErrorData"
+    ErrorData:
+      description: "오류 상세 정보"
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error Details"
+          description: "오류에 대한 설명"
+        code:
+          type: integer
+          example: 500001
+          description: "디버깅 등 내부 관리용 코드(6자리 숫자)"

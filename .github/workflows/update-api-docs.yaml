@@ -1,0 +1,47 @@
+name: Update API Docs
+on:
+  repository_dispatch:
+    types: [ sync-api-docs ]
+
+jobs:
+  update-api-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Clone Server Repository
+        run: |
+          git clone --branch develop ${{ vars.BACKEND_REPO_URL }} server
+
+      - name: Copy OpenAPI YAML Files
+        run: |
+          cp -r server/docs/api/* pages/openapi/
+
+      - name: Run AutoUpdate Script
+        run: node ./autoUpdate.js
+
+      - name: Commit & Push If Changes Detected
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo "No changes detected!"
+            exit 0
+          fi
+          git add pages/
+          git commit -m '[Bot] Update API Docs'
+          git push origin HEAD:${{ github.ref }}
