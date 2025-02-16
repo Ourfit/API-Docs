@@ -2,13 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 
-const STANDARD_CHARSET = 'UTF-8';
+const BASE_DIRECTORY = path.resolve(__dirname, 'pages');
+const API_YAML_DIR = path.join(BASE_DIRECTORY, 'openapi');
+const SWAGGER_PATH = path.join(BASE_DIRECTORY, 'swagger-initializer.js');
 
-const baseDirectory = path.resolve(__dirname, 'pages');
-const apiYamlDirectory = path.join(baseDirectory, 'openapi');
-const swaggerPath = path.join(baseDirectory, 'swagger-initializer.js');
+const STANDARD_CHARSET = 'utf-8';
+const URLS_REGEX = /urls: \[(.*?)]/s;
 
-function readFile(filePath, encoding = STANDARD_CHARSET) {
+/**
+ * 파일을 동기적으로 읽어온다.
+ *
+ * @param filePath 읽어올 파일 경로
+ * @param encoding 파일 인코딩 (기본값: UTF-8)
+ * @returns {*} 파일 내용
+ */
+const readFileSync = (filePath, encoding = STANDARD_CHARSET) => {
     try {
         return fs.readFileSync(filePath, encoding);
     } catch (error) {
@@ -17,7 +25,13 @@ function readFile(filePath, encoding = STANDARD_CHARSET) {
     }
 }
 
-function readDirectory(directoryPath) {
+/**
+ * 디렉토리를 동기적으로 읽어온다.
+ *
+ * @param directoryPath 읽어올 디렉토리 경로
+ * @returns {*} 디렉토리 내용
+ */
+const readDirectorySync = directoryPath => {
     try {
         return fs.readdirSync(directoryPath);
     } catch (error) {
@@ -26,36 +40,70 @@ function readDirectory(directoryPath) {
     }
 }
 
-const urlsRegex = /urls: \[(.*?)]/s;
-let swaggerContent = readFile(swaggerPath);
-const urlsMatch = swaggerContent.match(urlsRegex);
-let existingUrls = [];
-
-if (urlsMatch && urlsMatch[1]) {
-    existingUrls = JSON.parse(`[${urlsMatch[1].replace(/url: /g, '"url": ').replace(/name: /g, '"name": ')}]`);
+/**
+ * Swagger Content에서 기존 URL 배열을 추출한다.
+ *
+ * @param swaggerContent Swagger Content
+ * @returns {any|*[]} 기존 URL 배열
+ */
+const extractExistingUrls = swaggerContent => {
+    const urlsMatch = swaggerContent.match(URLS_REGEX);
+    return urlsMatch?.[1]
+        ? JSON.parse(`[${urlsMatch[1].replace(/url: /g, '"url": ').replace(/name: /g, '"name": ')}]`)
+        : [];
 }
 
-let yamlFiles = readDirectory(apiYamlDirectory).filter(file => file.endsWith('.yaml'));
-yamlFiles.forEach(file => {
-    const filePath = path.join(apiYamlDirectory, file);
-    const fileContent = readFile(filePath);
-    const parsedYaml = yaml.load(fileContent);
+/**
+ * Yaml 파일을 순회하며 기존 urls에 없는 URL 항목을 추가한다.
+ *
+ * @param existingUrls 기존 URL 배열
+ * @param yamlDirectory Yaml 파일이 위치한 디렉토리
+ */
+const updateUrlsWithYaml = (existingUrls, yamlDirectory) => {
+    const yamlFiles = readDirectorySync(yamlDirectory).filter(file => file.endsWith('.yaml'));
 
-    const title = parsedYaml.info?.title || path.basename(file, '.yaml');
-    const url = `./openapi/${file}`;
+    yamlFiles.forEach(file => {
+        const filePath = path.join(yamlDirectory, file);
+        const fileContent = readFileSync(filePath);
+        const parsedYaml = yaml.load(fileContent);
 
-    if (!existingUrls.some(existingUrl => existingUrl.url === url)) {
-        existingUrls.push({ url, name: title });
+        const title = parsedYaml.info?.title || path.basename(file, '.yaml');
+        const url = `./openapi/${file}`;
+
+        if (!existingUrls.some(existingUrl => existingUrl.url === url)) {
+            existingUrls.push({url, name: title});
+        }
+    });
+
+    return existingUrls;
+}
+
+/**
+ * 최신화된 URL 배열을 Swagger Content에 반영한다.
+ *
+ * @param swaggerPath Swagger Content 경로
+ * @param updatedUrls 최신화된 URL 배열
+ */
+const updateSwaggerContent = (swaggerPath, updatedUrls) => {
+    let swaggerContent = readFileSync(swaggerPath);
+    const newUrlsString = updatedUrls
+        .map(entry => `{url: "${entry.url}", name: "${entry.name}"}`)
+        .join(', ');
+    swaggerContent = swaggerContent.replace(/urls: \[(.*?)]/s, `urls: [${newUrlsString}]`);
+    try {
+        fs.writeFileSync(swaggerPath, swaggerContent, STANDARD_CHARSET);
+        console.log('API Docs URLs updated successfully');
+    } catch (error) {
+        console.error('Failed to write swagger-initializer.js', error);
+        process.exit(1);
     }
-});
-
-const newUrlsString = existingUrls.map(url => `{url: "${url.url}", name: "${url.name}"}`).join(', ');
-swaggerContent = swaggerContent.replace(urlsRegex, `urls: [${newUrlsString}]`);
-
-try {
-    fs.writeFileSync(swaggerPath, swaggerContent, 'utf-8');
-    console.log('API 문서 최신화 완료!');
-} catch (error) {
-    console.error(`Error writing swagger-initializer.js :`, error);
-    process.exit(1);
 }
+
+const main = () => {
+    const swaggerContent = readFileSync(SWAGGER_PATH);
+    const existingUrls = extractExistingUrls(swaggerContent);
+    const updatedUrls = updateUrlsWithYaml(existingUrls, API_YAML_DIR);
+    updateSwaggerContent(SWAGGER_PATH, updatedUrls);
+}
+
+main();
