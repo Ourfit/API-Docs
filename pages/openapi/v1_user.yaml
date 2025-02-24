@@ -527,6 +527,11 @@ components:
           enum: [ 'F', 'M' ]
           description: "성별"
           nullable: false
+        age:
+          type: number
+          example: 20
+          default: "나이"
+          nullable: false
         region1:
           type: string
           example: "서울특별시"
