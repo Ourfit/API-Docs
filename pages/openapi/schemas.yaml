@@ -88,7 +88,7 @@ components:
                     pageNumber:
                       type: integer
                       example: 1
-                      description: "현재 페이지 번호 (1부터 시작)"
+                      description: "현재 페이지 번호 (0부터 시작)"
                     pageSize:
                       type: integer
                       example: 10
@@ -114,11 +114,11 @@ components:
                   type: integer
                   example: 50
                   description: "전체 데이터 개수"
-                last:
+                isLast:
                   type: boolean
                   example: false
                   description: "현재 페이지가 마지막 페이지인지 여부"
-                first:
+                isFirst:
                   type: boolean
                   example: true
                   description: "현재 페이지가 첫 페이지인지 여부"
@@ -134,7 +134,7 @@ components:
                   type: integer
                   example: 10
                   description: "현재 페이지에서 반환된 요소 개수"
-                empty:
+                isEmpty:
                   type: boolean
                   example: false
                   description: "현재 페이지가 비어 있는지 여부"
