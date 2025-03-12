@@ -12,8 +12,7 @@ info:
     | 2025.02.13 | 개발 서버 URL 추가 |
     | 2025.02.15 | 이력 조회 API에 `parameter` 추가 |
     | 2025.02.26 | 메이트 이력에 `profileImageUrl`, `roleType` 추가 |
-    | 2025.03.05 | 내 메이트 정보 조회 응답에 `skillLevel`추가 |
-  version: 0.0.6
+  version: 0.0.5
 servers:
   - url: https://api.ourfit.life
 paths:
@@ -254,7 +253,7 @@ components:
               - type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/MateInfoResponse"
+                    $ref: "#/components/schemas/MeateInfoResponse"
     MateHistoryPageResponse:
       description: 내 메이트 정보 응답
       content:
@@ -272,7 +271,7 @@ components:
                         items:
                           $ref: "#/components/schemas/MateHistoryResponse"
   schemas:
-    MateInfoResponse:
+    MeateInfoResponse:
       type: object
       properties:
         mateId:
@@ -320,12 +319,6 @@ components:
               type: number
               example: 28
               description: 나이
-              nullable: false
-            skillLevel:
-              type: string
-              enum: [ 'BEGINNER', 'INTERMEDIATE', 'ADVANCED' ]
-              example: 'BEGINNER'
-              description: "운동 실력"
               nullable: false
         workout:
           description: 메이트와 함께 운동 관련 정보
